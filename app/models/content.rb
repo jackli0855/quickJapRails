@@ -1,35 +1,91 @@
+require 'nokogiri'
+require 'open-uri'
 class Content
 
 	def self.get_urls
-		uri = URI("http://blog.sina.com.cn/s/articlelist_1876727874_0_1.html")
-		res = Net::HTTP.get_response(uri)
-		html = res.body
+		links = []
+		contents = []
+		doc = Nokogiri::HTML(open('http://blog.sina.com.cn/s/articlelist_1876727874_2_1.html'))
 
-		# p page
-		# reg =  /\s*(?i)href\s*=\s*(\"([^"]*\")|'[^']*'|([^'">\s]+))/
-		# # # reg = /atc_title/
-		# # arr = page.split("\r\n")
-		# # arr.size
-		# # page.split("\r\n").each do |s|
-		# # 	arr = reg.match(s)
-		# # 	p arr.to_a.last
-		# # end
-		# arr = reg.match(html)
-		# # p arr
-		# arr.to_a.each do |h|
-		# 	p h
-		# end
-
-
-		end_chars = %q(.,'?!:;)
-		arr = URI.extract(html, ['http']).collect { |u| end_chars.index(u[-1]) ? u.chop : u }
-		arr = arr.select do |u|
-			u =~ /.*blog\_.+.html$/
+		# 获取页面上所有的链接
+		doc.css('span.atc_title a').each do |link|
+			p link.content
+		  contents << link.content
+		  links << link['href']
 		end
-		p arr
+
+		doc = Nokogiri::HTML(open('http://blog.sina.com.cn/s/articlelist_1876727874_2_2.html'))
+		# 获取页面上所有的链接
+		doc.css('span.atc_title a').each do |link|
+			p link.content
+		  contents << link.content
+		  links << link['href']
+		end
+		return contents.reverse!, links.reverse!
 	end
 
 	def self.get_contents
+		contents, links = get_urls()
+		links.each_with_index do |link, i|
+			p "page #{i} ============="
+			p link
+			doc = Nokogiri::HTML(open(link))
+			body = body_head
+			if i == 0
+				body.gsub!("{{unit}}", "單元#{i + 1}")
+			else
+				body.gsub!("{{unit}}", "單元#{i}")
+			end
+			body.gsub!("{{title}}", "單元#{contents[i]}")
+			ct = doc.at("div.articalContent").inner_html
+			if ct.present?
+				p "content is present"
+				body << ct
+				body << body_foot
+				File.open("#{Rails.root}/files/app1/#{i}.html", "wb+") do |f|
+					f.write body
+				end
+			else
+				p "content is blank"
+			end
+			return "links: #{links.size}"
+		end
+		
+	end
+
+	def self.body_head
+		body =<<EOF
+<!DOCTYPE html> 
+<html>
+<head>
+    <title>{{unit}}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8"/>
+    <link rel="stylesheet" href="css/vendor/jquery.mobile-1.4.3.min.css" />
+    <script src="js/vendor/jquery-1.11.1.min.js"></script>
+    <script src="js/vendor/jquery.mobile-1.4.3.min.js"></script>
+</head>
+
+<body>
+<div data-role="page">
+    <div data-role="header" data-position="fixed">
+        <h1>{{title}}</h1>
+        <a href="#"  data-icon="back" data-rel="back">Back</a>
+    </div><!-- /header -->
+    <div role="main" class="ui-content">
+EOF
+	end
+
+	def self.body_foot
+		body =<<EOF
+			</div><!-- /content -->
+    <div data-role="footer">
+        <h4></h4>
+    </div>
+</div>
+</body>
+</html>  
+EOF
 	end
 
 end
