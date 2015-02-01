@@ -24,6 +24,7 @@ class Content
 		return contents.reverse!, links.reverse!
 	end
 
+	# Content.get_contents
 	def self.get_contents
 		contents, links = get_urls()
 		links.each_with_index do |link, i|
@@ -34,19 +35,18 @@ class Content
 			if i == 0
 				body.gsub!("{{unit}}", "單元#{i + 1}")
 			else
-				body.gsub!("{{unit}}", "單元#{i}")
+				body.gsub!("{{unit}}", "單元#{i + 1}")
 			end
 			body.gsub!("{{title}}", "單元#{contents[i]}")
 			ct = doc.at("div.articalContent").inner_html
 			if ct.present?
-				p "content is present"
 				body << ct
 				body << body_foot
 				File.open("#{Rails.root}/files/app1/#{i}.html", "wb+") do |f|
 					f.write body
 				end
 			else
-				p "content is blank"
+				p "content is blank ++++++++++++++"
 			end
 			return "links: #{links.size}"
 		end
